@@ -51,7 +51,7 @@
     ]};
     const app=document.getElementById('app'),panels=document.getElementById('panels'),stateEl=document.getElementById('state'),unlockBtn=document.getElementById('unlock'),saveBtn=document.getElementById('save'),exportBtn=document.getElementById('export');
     const config=mergeConfig(defaultConfig,readStored()); let unlocked=false; renderPanels(); setLockedState(true);
-    unlockBtn.addEventListener('click', async ()=>{if(unlocked){unlocked=false; setLockedState(true); return;} const existingHash=localStorage.getItem(PASSWORD_KEY); if(!existingHash){const first=prompt('Create admin password'); if(first===null||first.trim()==='') return; const confirm=prompt('Confirm admin password'); if(first!==confirm){alert('Passwords did not match.'); return;} localStorage.setItem(PASSWORD_KEY, await hashText(first)); unlocked=true; setLockedState(false); return;} const typed=prompt('Enter admin password'); if(typed===null) return; if(await hashText(typed)===existingHash){unlocked=true; setLockedState(false);} else {alert('Incorrect password.');}});
+    unlockBtn.addEventListener('click', async ()=>{if(unlocked){unlocked=false; setLockedState(true); return;} const existingHash=localStorage.getItem(PASSWORD_KEY); const ok=existingHash ? await validatePassword(existingHash) : await createPassword(); if(!ok) return; unlocked=true; setLockedState(false);});
     saveBtn.addEventListener('click',()=>{if(!unlocked) return; syncConfigFromInputs(); localStorage.setItem(STORAGE_KEY,JSON.stringify(config,null,2)); flashStatus('Saved to localStorage.');});
     exportBtn.addEventListener('click',()=>{syncConfigFromInputs(); const blob=new Blob([JSON.stringify(config,null,2)],{type:'application/json'}),a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='portfolio-config.json'; a.click(); URL.revokeObjectURL(a.href);});
     function setLockedState(locked){app.classList.toggle('locked',locked); stateEl.innerHTML=locked?'Mode: <strong>View Open / Edit Locked</strong>':'Mode: <strong>Edit Unlocked</strong>'; unlockBtn.textContent=locked?'Unlock Edit':'Lock Edit';}
@@ -65,6 +65,8 @@
     function escapeHtml(v){return String(v||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');}
     function escapeAttr(v){return escapeHtml(v).replaceAll('"','&quot;').replaceAll("'",'&#39;');}
     async function hashText(text){const bytes=new TextEncoder().encode(text); const hash=await crypto.subtle.digest('SHA-256',bytes); return Array.from(new Uint8Array(hash)).map((b)=>b.toString(16).padStart(2,'0')).join('');}
+    async function createPassword(){const first=prompt('Create admin password'); if(first===null||first.trim()==='') return false; const confirm=prompt('Confirm admin password'); if(first!==confirm){alert('Passwords did not match.'); return false;} localStorage.setItem(PASSWORD_KEY, await hashText(first)); return true;}
+    async function validatePassword(existingHash){const typed=prompt('Enter admin password'); if(typed===null) return false; if(await hashText(typed)===existingHash) return true; alert('Incorrect password.'); return false;}
   </script>
 </body>
 </html>
