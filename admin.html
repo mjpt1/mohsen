@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Portfolio Admin</title>
+  <style>
+    :root { --bg: #07070d; --fg: #f0ebff; --muted: #a9a2c9; --line: rgba(255,255,255,.14); }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; color: var(--fg); font-family: Inter, system-ui, sans-serif;
+      background: radial-gradient(circle at 20% 10%, #1b1730, #0a0a12 52%, #06060c 100%);
+      padding: 2rem;
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; display: grid; gap: 1rem; }
+    .panel {
+      background: rgba(16, 16, 30, 0.45);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      backdrop-filter: blur(12px);
+      padding: 1rem;
+      display: grid;
+      gap: .75rem;
+    }
+    .top { display: flex; gap: .7rem; flex-wrap: wrap; align-items: center; }
+    .top input, .top button { height: 2.35rem; }
+    h1, h2 { margin: 0; }
+    h1 { font-size: 1.2rem; }
+    h2 { font-size: .95rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
+    input, textarea, button {
+      background: rgba(255,255,255,.05); color: var(--fg); border: 1px solid var(--line);
+      border-radius: 10px; padding: .6rem .7rem; width: 100%;
+    }
+    textarea { min-height: 72px; resize: vertical; }
+    .project-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: .8rem; }
+    .project { border: 1px solid var(--line); border-radius: 12px; padding: .75rem; display: grid; gap: .5rem; }
+    .readonly input, .readonly textarea { opacity: .65; pointer-events: none; }
+    .actions { display: flex; flex-wrap: wrap; gap: .6rem; }
+    .hint { color: var(--muted); font-size: .85rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="panel">
+      <h1>Portfolio Admin</h1>
+      <p class="hint">View is always open. Editing is locked until password is entered.</p>
+      <div class="top">
+        <input id="password" type="password" placeholder="Enter password to unlock editing" />
+        <button id="unlockBtn" type="button">Unlock Edit</button>
+        <button id="lockBtn" type="button">Lock</button>
+      </div>
+      <div class="actions">
+        <button id="saveBtn" type="button">Save to localStorage</button>
+        <button id="resetBtn" type="button">Reset to defaults</button>
+        <button id="exportBtn" type="button">Export JSON</button>
+      </div>
+      <div id="status" class="hint"></div>
+    </div>
+
+    <div id="editor" class="panel readonly">
+      <h2>Project Panels (Descriptions, Stack, Accent, Audio Volume, External Links)</h2>
+      <div class="project-grid" id="projectGrid"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Optional Server Note</h2>
+      <p class="hint">For server-side counters/requests on Vercel Edge, use Upstash REST: <code>fetch("https://your.upstash.io/set/key/val", { headers: { Authorization: "Bearer TOKEN" } })</code>.</p>
+    </div>
+  </div>
+
+  <script>
+    const defaultConfig = {
+      password: 'unlock-admin',
+      projects: [
+        { label: 'Core Architecture', title: 'Senior Developer Portfolio', caption: 'Multi-year delivery across product architecture, mentoring, and scalable platform design.', meta: 'repo: 812 commits • updated: 2026-05-18', stack: 'TypeScript • Three.js • Node', accent: '#a974ff', image: './hero.webp', audio: './audio/ambient-1.wav', volume: 0.35, links: { github: 'https://github.com/', devto: 'https://dev.to/' } },
+        { label: 'Cloud Services', title: 'Event-Driven Microservices', caption: 'Designed cloud-native services with resilient queues, policy-based APIs, and observability-first rollouts.', meta: 'services: 24 • uptime: 99.98%', stack: 'Go • Kafka • Kubernetes', accent: '#56d8ff', image: './scene2.webp', audio: './audio/ambient-2.wav', volume: 0.3, links: { github: 'https://github.com/', devto: 'https://dev.to/' } },
+        { label: 'AI Platform', title: 'Applied ML Workflows', caption: 'Built ingestion + model-serving paths with latency budgets and reproducible feature pipelines.', meta: 'models: 17 • p95: 112ms', stack: 'Python • FastAPI • Redis', accent: '#8df06b', image: './scene3.webp', audio: './audio/ambient-3.wav', volume: 0.28, links: { github: 'https://github.com/', devto: 'https://dev.to/' } },
+        { label: 'Developer Experience', title: 'CI/CD & DevOps Modernization', caption: 'Standardized pipelines, preview environments, and release governance across distributed teams.', meta: 'pipelines: 53 • deploy freq: daily', stack: 'GitHub Actions • Terraform • Docker', accent: '#ff8db4', image: './scene4.webp', audio: './audio/ambient-4.wav', volume: 0.27, links: { github: 'https://github.com/', devto: 'https://dev.to/' } },
+        { label: 'Scale & Performance', title: 'Frontend + API Optimization', caption: 'Reduced runtime cost and improved interactivity with measured rendering, caching, and protocol tuning.', meta: 'cost: -37% • web vitals: +28%', stack: 'React • Node • Postgres', accent: '#ffd56f', image: './scene5.webp', audio: './audio/ambient-5.wav', volume: 0.25, links: { github: 'https://github.com/', devto: 'https://dev.to/' } }
+      ]
+    };
+
+    const statusEl = document.getElementById('status');
+    const grid = document.getElementById('projectGrid');
+    const editor = document.getElementById('editor');
+    const passwordInput = document.getElementById('password');
+
+    let editingUnlocked = false;
+
+    function getConfig() {
+      try {
+        const raw = localStorage.getItem('portfolioConfigV1');
+        if (!raw) return structuredClone(defaultConfig);
+        const parsed = JSON.parse(raw);
+        return {
+          ...structuredClone(defaultConfig),
+          ...parsed,
+          projects: (parsed.projects || defaultConfig.projects).map((p, i) => ({ ...defaultConfig.projects[i % defaultConfig.projects.length], ...p }))
+        };
+      } catch {
+        return structuredClone(defaultConfig);
+      }
+    }
+
+    function setStatus(msg) { statusEl.textContent = msg; }
+
+    function makeProjectForm(project, index) {
+      const card = document.createElement('section');
+      card.className = 'project';
+      card.innerHTML = `
+        <h2>Project ${String(index + 1).padStart(2, '0')}</h2>
+        <input data-k="label" placeholder="Label" value="${project.label || ''}" />
+        <input data-k="title" placeholder="Title" value="${project.title || ''}" />
+        <textarea data-k="caption" placeholder="Description">${project.caption || ''}</textarea>
+        <input data-k="stack" placeholder="Stack labels" value="${project.stack || ''}" />
+        <input data-k="meta" placeholder="Meta coordinates/timestamps" value="${project.meta || ''}" />
+        <input data-k="accent" type="color" value="${project.accent || '#a974ff'}" />
+        <input data-k="volume" type="number" min="0" max="1" step="0.01" value="${project.volume ?? 0.3}" />
+        <input data-k="audio" placeholder="Audio URL" value="${project.audio || ''}" />
+        <input data-k="github" placeholder="GitHub link" value="${project.links?.github || ''}" />
+        <input data-k="devto" placeholder="Dev.to link" value="${project.links?.devto || ''}" />
+      `;
+      return card;
+    }
+
+    function render() {
+      const cfg = getConfig();
+      grid.innerHTML = '';
+      cfg.projects.slice(0, 5).forEach((p, i) => grid.appendChild(makeProjectForm(p, i)));
+      editor.classList.toggle('readonly', !editingUnlocked);
+    }
+
+    function readEditor() {
+      const cfg = getConfig();
+      const cards = [...grid.querySelectorAll('.project')];
+      cfg.projects = cards.map((card, i) => {
+        const base = cfg.projects[i] || {};
+        const q = (k) => card.querySelector(`[data-k="${k}"]`)?.value ?? '';
+        return {
+          ...base,
+          label: q('label'),
+          title: q('title'),
+          caption: q('caption'),
+          stack: q('stack'),
+          meta: q('meta'),
+          accent: q('accent'),
+          volume: Math.max(0, Math.min(1, Number(q('volume') || 0))),
+          audio: q('audio'),
+          links: { github: q('github'), devto: q('devto') }
+        };
+      });
+      return cfg;
+    }
+
+    document.getElementById('unlockBtn').addEventListener('click', () => {
+      const cfg = getConfig();
+      editingUnlocked = passwordInput.value === (cfg.password || defaultConfig.password);
+      setStatus(editingUnlocked ? 'Edit mode unlocked.' : 'Invalid password.');
+      render();
+    });
+
+    document.getElementById('lockBtn').addEventListener('click', () => {
+      editingUnlocked = false;
+      passwordInput.value = '';
+      setStatus('Edit mode locked.');
+      render();
+    });
+
+    document.getElementById('saveBtn').addEventListener('click', () => {
+      if (!editingUnlocked) return setStatus('Unlock edit mode first.');
+      const cfg = readEditor();
+      localStorage.setItem('portfolioConfigV1', JSON.stringify(cfg));
+      setStatus('Saved to localStorage.');
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      if (!editingUnlocked) return setStatus('Unlock edit mode first.');
+      localStorage.setItem('portfolioConfigV1', JSON.stringify(defaultConfig));
+      setStatus('Reset to defaults.');
+      render();
+    });
+
+    document.getElementById('exportBtn').addEventListener('click', () => {
+      const cfg = editingUnlocked ? readEditor() : getConfig();
+      const blob = new Blob([JSON.stringify(cfg, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'portfolio-config.json';
+      a.click();
+      URL.revokeObjectURL(url);
+      setStatus('JSON exported.');
+    });
+
+    render();
+  </script>
+</body>
+</html>
