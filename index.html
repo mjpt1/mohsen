@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Senior Developer Portfolio</title>
+  <style>
+    :root{
+      --bg:#06070a;
+      --panel:rgba(10,12,18,.58);
+      --line:rgba(255,255,255,.12);
+      --text:#f5f7fb;
+      --muted:rgba(255,255,255,.62);
+      --soft:rgba(255,255,255,.35);
+      --accent:#58f2c1;
+      --danger:#ff6b6b;
+      --shadow:0 20px 80px rgba(0,0,0,.35);
+      --radius:18px;
+    }
+
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0}
+    body{
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background: radial-gradient(circle at top, #0d1220 0%, #06070a 48%, #030407 100%);
+      color:var(--text);
+      overflow-x:hidden;
+      height: 520vh;
+      letter-spacing:.01em;
+    }
+
+    canvas{
+      position:fixed;
+      inset:0;
+      width:100%;
+      height:100%;
+      display:block;
+      z-index:1;
+    }
+
+    .loader{
+      position:fixed;
+      inset:0;
+      z-index:200;
+      display:grid;
+      place-items:center;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(88,242,193,.10), transparent 25%),
+        radial-gradient(circle at 80% 30%, rgba(123,166,255,.08), transparent 30%),
+        linear-gradient(180deg, #090b10 0%, #05060a 100%);
+      transition:opacity .55s ease, visibility .55s ease;
+    }
+    .loader.hide{
+      opacity:0;
+      visibility:hidden;
+      pointer-events:none;
+    }
+    .loader-inner{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:18px;
+    }
+    .loader-ring{
+      width:64px;
+      height:64px;
+      border-radius:50%;
+      border:2px solid rgba(255,255,255,.12);
+      border-top-color:var(--accent);
+      animation:spin 1s linear infinite;
+      box-shadow:0 0 40px rgba(88,242,193,.16);
+    }
+    .loader-text{
+      font-size:12px;
+      letter-spacing:.28em;
+      text-transform:uppercase;
+      color:var(--muted);
+    }
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    .hud{
+      position:fixed;
+      inset:0;
+      z-index:20;
+      pointer-events:none;
+    }
+
+    .content{
+      position:absolute;
+      left: clamp(20px, 4vw, 64px);
+      bottom: clamp(92px, 12vh, 140px);
+      width:min(560px, calc(100vw - 40px));
+    }
+
+    .ghost-number{
+      position:absolute;
+      left:-10px;
+      top:-78px;
+      font-size: clamp(92px, 14vw, 180px);
+      line-height:.9;
+      font-weight:900;
+      color:rgba(255,255,255,.03);
+      user-select:none;
+      letter-spacing:-.06em;
+      transform:translateY(20px);
+      opacity:0;
+      transition:opacity .7s ease, transform .9s cubic-bezier(.16,1,.3,1);
+    }
+    .content.active .ghost-number{
+      opacity:1;
+      transform:translateY(0);
+    }
+
+    .copy{
+      position:relative;
+      pointer-events:none;
+    }
+
+    .copy-row{
+      display:flex;
+      align-items:flex-start;
+      gap:18px;
+    }
+
+    .copy-main{
+      min-width:0;
+      flex:1;
+    }
+
+    .divider-vertical{
+      width:1px;
+      min-height:84px;
+      background:linear-gradient(180deg, transparent, rgba(255,255,255,.24), transparent);
+      opacity:0;
+      transform:translateY(22px);
+      transition:opacity .6s ease .18s, transform .8s cubic-bezier(.16,1,.3,1) .18s;
+    }
+    .content.active .divider-vertical{
+      opacity:1;
+      transform:translateY(0);
+    }
+
+    .project-label,
+    .project-title,
+    .project-caption,
+    .project-meta,
+    .project-links{
+      opacity:0;
+      transform:translateY(22px);
+      transition:
+        opacity .68s ease,
+        transform .9s cubic-bezier(.16,1,.3,1);
+    }
+
+    .project-label{
+      position:relative;
+      display:inline-block;
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:.34em;
+      color:var(--muted);
+      margin-bottom:14px;
+      padding-bottom:10px;
+    }
+    .project-label::after{
+      content:"";
+      position:absolute;
+      left:0;
+      bottom:0;
+      width:0;
+      height:2px;
+      border-radius:2px;
+      background:var(--accent);
+      box-shadow:0 0 18px color-mix(in srgb, var(--accent) 65%, transparent);
+      transition:width .8s cubic-bezier(.16,1,.3,1);
+    }
+    .content.active .project-label::after{
+      width:100%;
+    }
+
+    .project-title{
+      font-size: clamp(28px, 4.5vw, 52px);
+      line-height:1.12;
+      font-weight:700;
+      margin-bottom:16px;
+      transition-delay:.08s;
+    }
+
+    .project-caption{
+      font-size: clamp(13px, 2vw, 15px);
+      line-height:1.68;
+      color:var(--muted);
+      margin-bottom:22px;
+      max-width:440px;
+      transition-delay:.14s;
+    }
+
+    .project-meta{
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:.18em;
+      color:var(--soft);
+      font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+      transition-delay:.20s;
+    }
+
+    .project-links{
+      display:flex;
+      flex-wrap:wrap;
+      gap:12px;
+      margin-top:24px;
+      pointer-events:auto;
+      transition-delay:.26s;
+    }
+
+    .btn-link{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:10px 18px;
+      border-radius:8px;
+      background:var(--panel);
+      border:1px solid var(--line);
+      color:var(--text);
+      text-decoration:none;
+      font-size:13px;
+      font-weight:500;
+      backdrop-filter:blur(12px);
+      transition:all .22s ease;
+      cursor:pointer;
+    }
+    .btn-link:hover{
+      background:rgba(255,255,255,.08);
+      border-color:var(--accent);
+      box-shadow:0 0 28px rgba(88,242,193,.12);
+    }
+
+    .content.active .project-label,
+    .content.active .project-title,
+    .content.active .project-caption,
+    .content.active .project-meta,
+    .content.active .project-links{
+      opacity:1;
+      transform:translateY(0);
+    }
+
+    .audio-player{
+      position:fixed;
+      right: clamp(16px, 3vw, 32px);
+      bottom: clamp(16px, 3vw, 32px);
+      z-index:50;
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding:12px 16px;
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:12px;
+      backdrop-filter:blur(16px);
+      pointer-events:auto;
+    }
+
+    .audio-btn{
+      width:38px;
+      height:38px;
+      border-radius:8px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.04);
+      color:var(--text);
+      cursor:pointer;
+      display:grid;
+      place-items:center;
+      transition:all .18s ease;
+    }
+    .audio-btn:hover{
+      background:rgba(255,255,255,.08);
+      border-color:var(--accent);
+    }
+
+    .audio-btn svg{
+      width:16px;
+      height:16px;
+      fill:currentColor;
+    }
+
+    .waveform{
+      display:flex;
+      align-items:flex-end;
+      gap:2px;
+      height:24px;
+    }
+
+    .bar{
+      width:3px;
+      background:var(--accent);
+      border-radius:1px;
+      transition:height .15s ease;
+    }
+
+    .scroll-indicator{
+      position:fixed;
+      left:50%;
+      bottom:32px;
+      transform:translateX(-50%);
+      z-index:30;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:10px;
+      font-size:10px;
+      text-transform:uppercase;
+      letter-spacing:.28em;
+      color:var(--soft);
+      pointer-events:none;
+      opacity:0;
+      transition:opacity .8s ease;
+    }
+    .scroll-indicator.show{
+      opacity:1;
+    }
+
+    .scroll-line{
+      width:1px;
+      height:32px;
+      background:linear-gradient(180deg, var(--accent), transparent);
+      animation:scrollPulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes scrollPulse{
+      0%,100%{opacity:.4;transform:scaleY(1)}
+      50%{opacity:1;transform:scaleY(1.2)}
+    }
+
+    .sections{
+      position:relative;
+    }
+
+    .section{
+      height:100vh;
+      position:relative;
+    }
+  </style>
+</head>
+<body>
+  <div class="loader" id="loader">
+    <div class="loader-inner">
+      <div class="loader-ring"></div>
+      <div class="loader-text">Loading Experience</div>
+    </div>
+  </div>
+
+  <canvas id="canvas"></canvas>
+
+  <div class="hud">
+    <div class="content" id="content-0">
+      <div class="ghost-number">00</div>
+      <div class="copy">
+        <div class="copy-row">
+          <div class="divider-vertical"></div>
+          <div class="copy-main">
+            <div class="project-label">Introduction</div>
+            <div class="project-title">Creative Developer</div>
+            <div class="project-caption">Crafting immersive digital experiences with modern web technologies. Scroll to explore my work.</div>
+            <div class="project-meta">LAT: 35.6892° N | LON: 51.3890° E</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="content" id="content-1">
+      <div class="ghost-number">01</div>
+      <div class="copy">
+        <div class="copy-row">
+          <div class="divider-vertical"></div>
+          <div class="copy-main">
+            <div class="project-label">Project One</div>
+            <div class="project-title">E-Commerce Platform</div>
+            <div class="project-caption">Full-stack Next.js application with real-time inventory management and AI-powered recommendations.</div>
+            <div class="project-meta">NODE v20.11.0 | 12,403 COMMITS | MIT LICENSE</div>
+            <div class="project-links">
+              <a href="#" class="btn-link">
+                <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+                GitHub
+              </a>
+              <a href="#" class="btn-link">Live Demo</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="content" id="content-2">
+      <div class="ghost-number">02</div>
+      <div class="copy">
+        <div class="copy-row">
+          <div class="divider-vertical"></div>
+          <div class="copy-main">
+            <div class="project-label">Project Two</div>
+            <div class="project-title">3D Visualization Engine</div>
+            <div class="project-caption">WebGL-powered data visualization platform rendering millions of points in real-time.</div>
+            <div class="project-meta">THREE.JS r165 | WEBGL 2.0 | 60 FPS</div>
+            <div class="project-links">
+              <a href="#" class="btn-link">
+                <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+                GitHub
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="content" id="content-3">
+      <div class="ghost-number">03</div>
+      <div class="copy">
+        <div class="copy-row">
+          <div class="divider-vertical"></div>
+          <div class="copy-main">
+            <div class="project-label">Project Three</div>
+            <div class="project-title">AI Chat Application</div>
+            <div class="project-caption">Real-time communication platform with natural language processing and sentiment analysis.</div>
+            <div class="project-meta">REACT 18 | WEBSOCKET | OPENAI API</div>
+            <div class="project-links">
+              <a href="#" class="btn-link">
+                <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+                GitHub
+              </a>
+              <a href="#" class="btn-link">Try It</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="content" id="content-4">
+      <div class="ghost-number">04</div>
+      <div class="copy">
+        <div class="copy-row">
+          <div class="divider-vertical"></div>
+          <div class="copy-main">
+            <div class="project-label">Project Four</div>
+            <div class="project-title">DevOps Dashboard</div>
+            <div class="project-caption">Infrastructure monitoring solution with real-time metrics, automated scaling, and alerting.</div>
+            <div class="project-meta">KUBERNETES | PROMETHEUS | GRAFANA</div>
+            <div class="project-links">
+              <a href="#" class="btn-link">
+                <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+                GitHub
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="audio-player" id="audioPlayer">
+      <button class="audio-btn" id="playPauseBtn" title="Play/Pause">
+        <svg id="playIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        <svg id="pauseIcon" viewBox="0 0 24 24" style="display:none"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+      </button>
+      <button class="audio-btn" id="muteBtn" title="Mute/Unmute">
+        <svg id="volumeIcon" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+        <svg id="muteIcon" viewBox="0 0 24 24" style="display:none"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>
+      </button>
+      <div class="waveform">
+        <div class="bar" style="height:8px"></div>
+        <div class="bar" style="height:16px"></div>
+        <div class="bar" style="height:12px"></div>
+        <div class="bar" style="height:20px"></div>
+        <div class="bar" style="height:14px"></div>
+        <div class="bar" style="height:18px"></div>
+        <div class="bar" style="height:10px"></div>
+      </div>
+    </div>
+
+    <div class="scroll-indicator" id="scrollIndicator">
+      <div class="scroll-line"></div>
+      <span>Scroll to Explore</span>
+    </div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+
+    // Configuration
+    const CONFIG = {
+      projectCount: 5,
+      zSpacing: 8,
+      cameraZ: 5,
+      scrollSpeed: 0.001,
+      audioFiles: [
+        'audio1.wav',
+        'audio2.wav',
+        'audio3.wav',
+        'audio4.wav',
+        'audio5.wav'
+      ]
+    };
+
+    // State
+    let scene, camera, renderer;
+    let planes = [];
+    let scrollY = 0;
+    let currentSection = 0;
+    let audioElements = [];
+    let currentAudioIndex = 0;
+    let isPlaying = false;
+    let isMuted = false;
+    let audioContextInitialized = false;
+    let gainNodes = [];
+
+    // DOM Elements
+    const canvas = document.getElementById('canvas');
+    const loader = document.getElementById('loader');
+    const scrollIndicator = document.getElementById('scrollIndicator');
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    const muteBtn = document.getElementById('muteBtn');
+    const playIcon = document.getElementById('playIcon');
+    const pauseIcon = document.getElementById('pauseIcon');
+    const volumeIcon = document.getElementById('volumeIcon');
+    const muteIcon = document.getElementById('muteIcon');
+    const waveformBars = document.querySelectorAll('.bar');
+
+    // Initialize Three.js
+    async function init() {
+      // Scene
+      scene = new THREE.Scene();
+      scene.fog = new THREE.Fog(0x06070a, 5, 30);
+
+      // Camera
+      camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 100);
+      camera.position.z = CONFIG.cameraZ;
+      camera.position.y = 0;
+
+      // Renderer
+      renderer = new THREE.WebGLRenderer({ 
+        canvas, 
+        antialias: true,
+        alpha: true 
+      });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+      // Load hero image first
+      await loadHeroImage();
+
+      // Start animation loop
+      animate();
+
+      // Load remaining images in background
+      loadRemainingImages();
+    }
+
+    async function loadHeroImage() {
+      return new Promise((resolve) => {
+        const loaderImg = new Image();
+        loaderImg.src = 'hero.webp';
+        loaderImg.onload = () => {
+          createPlane(0, loaderImg);
+          
+          // Hide loader after hero loads
+          setTimeout(() => {
+            loader.classList.add('hide');
+            scrollIndicator.classList.add('show');
+            
+            // Activate first section
+            updateActiveSection(0);
+          }, 500);
+          
+          resolve();
+        };
+        loaderImg.onerror = () => {
+          // Create placeholder if image fails
+          createPlaceholderPlane(0);
+          loader.classList.add('hide');
+          scrollIndicator.classList.add('show');
+          updateActiveSection(0);
+          resolve();
+        };
+      });
+    }
+
+    function loadRemainingImages() {
+      for (let i = 1; i < CONFIG.projectCount; i++) {
+        setTimeout(() => {
+          const loaderImg = new Image();
+          loaderImg.src = `${i + 1}.png`;
+          loaderImg.onload = () => createPlane(i, loaderImg);
+          loaderImg.onerror = () => createPlaceholderPlane(i);
+        }, i * 300);
+      }
+    }
+
+    function createPlane(index, img) {
+      const texture = new THREE.Texture(img);
+      texture.needsUpdate = true;
+      
+      const geometry = new THREE.PlaneGeometry(6, 4);
+      const material = new THREE.MeshBasicMaterial({
+        map: texture,
+        transparent: true,
+        opacity: 0
+      });
+
+      const plane = new THREE.Mesh(geometry, material);
+      plane.position.z = -index * CONFIG.zSpacing;
+      plane.position.x = 2;
+      plane.userData.index = index;
+      plane.userData.targetOpacity = 0;
+
+      scene.add(plane);
+      planes[index] = plane;
+    }
+
+    function createPlaceholderPlane(index) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 342;
+      const ctx = canvas.getContext('2d');
+      
+      // Gradient background
+      const gradient = ctx.createLinearGradient(0, 0, 512, 342);
+      gradient.addColorStop(0, '#1a1d2e');
+      gradient.addColorStop(1, '#0d1016');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, 512, 342);
+      
+      // Text
+      ctx.fillStyle = 'rgba(255,255,255,0.1)';
+      ctx.font = 'bold 48px Inter';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(`PROJECT ${index}`, 256, 171);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      const geometry = new THREE.PlaneGeometry(6, 4);
+      const material = new THREE.MeshBasicMaterial({
+        map: texture,
+        transparent: true,
+        opacity: 0
+      });
+
+      const plane = new THREE.Mesh(geometry, material);
+      plane.position.z = -index * CONFIG.zSpacing;
+      plane.position.x = 2;
+      plane.userData.index = index;
+      plane.userData.targetOpacity = 0;
+
+      scene.add(plane);
+      planes[index] = plane;
+    }
+
+    // Scroll handling
+    function onScroll() {
+      scrollY = window.scrollY;
+      const maxScroll = document.body.scrollHeight - window.innerHeight;
+      const scrollProgress = scrollY / maxScroll;
+      
+      // Move camera based on scroll
+      const targetZ = CONFIG.cameraZ + scrollProgress * (CONFIG.projectCount - 1) * CONFIG.zSpacing;
+      camera.position.z = THREE.MathUtils.lerp(camera.position.z, targetZ, 0.1);
+
+      // Update active section
+      const newSection = Math.round(scrollProgress * (CONFIG.projectCount - 1));
+      if (newSection !== currentSection) {
+        updateActiveSection(newSection);
+      }
+
+      // Update plane opacity
+      planes.forEach((plane, index) => {
+        if (plane) {
+          const distance = Math.abs(camera.position.z + plane.position.z);
+          plane.userData.targetOpacity = Math.max(0, 1 - distance / 6);
+        }
+      });
+    }
+
+    function updateActiveSection(index) {
+      currentSection = index;
+
+      // Update content visibility
+      document.querySelectorAll('.content').forEach((el, i) => {
+        if (i === index) {
+          el.classList.add('active');
+        } else {
+          el.classList.remove('active');
+        }
+      });
+
+      // Crossfade audio
+      if (audioElements.length > 0 && isPlaying && !isMuted) {
+        crossfadeAudio(index);
+      }
+
+      // Update waveform animation
+      if (isPlaying && !isMuted) {
+        animateWaveform(true);
+      }
+    }
+
+    // Audio system
+    function initAudio() {
+      if (audioContextInitialized) return;
+
+      for (let i = 0; i < CONFIG.projectCount; i++) {
+        const audio = new Audio(CONFIG.audioFiles[i]);
+        audio.loop = true;
+        audio.volume = 0;
+        audioElements.push(audio);
+      }
+
+      audioContextInitialized = true;
+    }
+
+    function playAudio() {
+      if (!audioContextInitialized) {
+        initAudio();
+      }
+
+      if (audioElements[currentAudioIndex]) {
+        audioElements[currentAudioIndex].volume = 0;
+        audioElements[currentAudioIndex].play();
+        
+        // Fade in
+        fadeInAudio(currentAudioIndex);
+        
+        isPlaying = true;
+        playIcon.style.display = 'none';
+        pauseIcon.style.display = 'block';
+        animateWaveform(true);
+      }
+    }
+
+    function pauseAudio() {
+      audioElements.forEach(audio => {
+        audio.pause();
+      });
+      isPlaying = false;
+      playIcon.style.display = 'block';
+      pauseIcon.style.display = 'none';
+      animateWaveform(false);
+    }
+
+    function fadeInAudio(index) {
+      const audio = audioElements[index];
+      if (!audio) return;
+
+      let volume = 0;
+      const targetVolume = isMuted ? 0 : 0.3;
+      const fadeInterval = setInterval(() => {
+        volume += 0.02;
+        if (volume >= targetVolume) {
+          volume = targetVolume;
+          clearInterval(fadeInterval);
+        }
+        audio.volume = volume;
+      }, 50);
+    }
+
+    function fadeOutAudio(index) {
+      const audio = audioElements[index];
+      if (!audio) return;
+
+      let volume = audio.volume;
+      const fadeInterval = setInterval(() => {
+        volume -= 0.02;
+        if (volume <= 0) {
+          volume = 0;
+          audio.pause();
+          clearInterval(fadeInterval);
+        }
+        audio.volume = volume;
+      }, 50);
+    }
+
+    function crossfadeAudio(newIndex) {
+      if (currentAudioIndex === newIndex) return;
+
+      fadeOutAudio(currentAudioIndex);
+      currentAudioIndex = newIndex;
+
+      const newAudio = audioElements[newIndex];
+      if (newAudio) {
+        newAudio.volume = 0;
+        newAudio.play();
+        fadeInAudio(newIndex);
+      }
+    }
+
+    function toggleMute() {
+      isMuted = !isMuted;
+      
+      if (isMuted) {
+        audioElements.forEach(audio => {
+          audio.volume = 0;
+        });
+        volumeIcon.style.display = 'none';
+        muteIcon.style.display = 'block';
+        animateWaveform(false);
+      } else {
+        if (isPlaying && audioElements[currentAudioIndex]) {
+          audioElements[currentAudioIndex].volume = 0.3;
+          animateWaveform(true);
+        }
+        volumeIcon.style.display = 'block';
+        muteIcon.style.display = 'none';
+      }
+    }
+
+    // Waveform animation
+    let waveformAnimation;
+    function animateWaveform(animate) {
+      if (animate) {
+        if (waveformAnimation) return;
+        
+        waveformAnimation = setInterval(() => {
+          waveformBars.forEach(bar => {
+            const height = Math.random() * 16 + 4;
+            bar.style.height = `${height}px`;
+          });
+        }, 150);
+      } else {
+        clearInterval(waveformAnimation);
+        waveformAnimation = null;
+        waveformBars.forEach(bar => {
+          bar.style.height = '4px';
+        });
+      }
+    }
+
+    // Animation loop
+    function animate() {
+      requestAnimationFrame(animate);
+
+      // Update plane opacities
+      planes.forEach(plane => {
+        if (plane) {
+          plane.material.opacity = THREE.MathUtils.lerp(
+            plane.material.opacity,
+            plane.userData.targetOpacity,
+            0.05
+          );
+        }
+      });
+
+      renderer.render(scene, camera);
+    }
+
+    // Event listeners
+    window.addEventListener('scroll', onScroll);
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // Audio controls
+    playPauseBtn.addEventListener('click', () => {
+      if (isPlaying) {
+        pauseAudio();
+      } else {
+        playAudio();
+      }
+    });
+
+    muteBtn.addEventListener('click', toggleMute);
+
+    // First gesture detection for autoplay
+    let firstGesture = false;
+    function handleFirstGesture() {
+      if (firstGesture) return;
+      firstGesture = true;
+
+      setTimeout(() => {
+        playAudio();
+      }, 80);
+    }
+
+    window.addEventListener('scroll', handleFirstGesture, { once: true });
+    window.addEventListener('click', handleFirstGesture, { once: true });
+    window.addEventListener('keydown', handleFirstGesture, { once: true });
+    window.addEventListener('touchstart', handleFirstGesture, { once: true });
+
+    // Start
+    init();
+  </script>
+</body>
+</html>
