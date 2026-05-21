@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Senior Developer Portfolio</title>
+  <style>
+    :root { color-scheme: dark; --bg:#050608; --panel:rgba(18,20,30,.55); --stroke:rgba(255,255,255,.16); --muted:rgba(228,231,244,.72); --accent:#57f3ff; }
+    * { box-sizing:border-box; }
+    html,body { margin:0; min-height:500vh; font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif; background:var(--bg); color:#eef2ff; overflow-x:hidden; }
+    #scene { position:fixed; inset:0; width:100vw; height:100vh; display:block; z-index:1; }
+    .overlay { position:fixed; inset:0; z-index:2; pointer-events:none; display:flex; align-items:center; justify-content:center; padding:7vw; }
+    .project-stack { width:min(980px,100%); position:relative; }
+    .ghost-index { position:absolute; left:-.6rem; top:-12rem; display:flex; flex-direction:column; gap:.2rem; font-size:clamp(3.5rem,12vw,9rem); font-weight:800; line-height:.84; opacity:.14; letter-spacing:-.04em; user-select:none; }
+    .ghost-index span { color:rgba(255,255,255,.16); transition:color .45s ease, transform .45s ease; transform:translateX(0); }
+    .ghost-index span.active { color:color-mix(in srgb, var(--accent) 65%, white 35%); transform:translateX(.6rem); }
+    .project-info { display:none; pointer-events:auto; background:var(--panel); border:1px solid var(--stroke); backdrop-filter:blur(15px); border-radius:18px; padding:clamp(1.1rem,3vw,2rem); box-shadow:0 28px 90px rgba(0,0,0,.34); max-width:72ch; transform:translateY(26px); opacity:0; transition:transform .5s ease,opacity .5s ease; }
+    .project-info.active { display:block; transform:translateY(0); opacity:1; }
+    .project-info > * { transform:translateY(22px); opacity:0; transition:transform .52s ease,opacity .52s ease; }
+    .project-info.active > * { transform:translateY(0); opacity:1; }
+    .project-info.active > *:nth-child(1){transition-delay:.08s;} .project-info.active > *:nth-child(2){transition-delay:.14s;} .project-info.active > *:nth-child(3){transition-delay:.19s;} .project-info.active > *:nth-child(4){transition-delay:.24s;} .project-info.active > *:nth-child(5){transition-delay:.29s;}
+    .label { text-transform:uppercase; font-weight:650; letter-spacing:.15em; font-size:.72rem; color:var(--muted); display:inline-flex; flex-direction:column; align-items:flex-start; gap:.45rem; margin-bottom:.8rem; }
+    .accent-line { width:100%; height:2px; border-radius:99px; background:color-mix(in srgb, var(--accent) 80%, white 20%); transform-origin:left; transform:scaleX(.18); transition:transform .45s ease; }
+    .project-info.active .accent-line { transform:scaleX(1); }
+    h1 { margin:0 0 1rem; font-weight:700; line-height:1.06; font-size:clamp(1.6rem,3.2vw,3rem); letter-spacing:-.02em; }
+    .copy-row { display:grid; grid-template-columns:auto 1px 1fr; gap:1rem; align-items:start; margin-bottom:.9rem; }
+    .divider { width:1px; min-height:4.4rem; background:rgba(255,255,255,.2); }
+    .caption { margin:0; color:var(--muted); line-height:1.56; font-size:.95rem; }
+    .meta { font-size:.72rem; letter-spacing:.08em; text-transform:uppercase; color:rgba(239,244,255,.62); margin-top:.45rem; font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace; }
+    .links { margin-top:.95rem; display:flex; flex-wrap:wrap; gap:.55rem; }
+    .links a { border:1px solid rgba(255,255,255,.2); border-radius:999px; text-decoration:none; color:#f8f9ff; pointer-events:auto; font-size:.8rem; padding:.36rem .8rem; background:rgba(255,255,255,.06); }
+    #player { position:fixed; right:1rem; bottom:1rem; z-index:3; pointer-events:auto; width:min(320px,calc(100vw - 2rem)); border-radius:15px; border:1px solid var(--stroke); background:rgba(10,12,20,.78); backdrop-filter:blur(14px); padding:.7rem .76rem; display:flex; align-items:center; gap:.55rem; box-shadow:0 16px 40px rgba(0,0,0,.32); }
+    #player button { border:1px solid rgba(255,255,255,.23); background:rgba(255,255,255,.06); color:#f3f7ff; border-radius:10px; min-width:38px; min-height:34px; cursor:pointer; }
+    #player-status { display:flex; flex-direction:column; gap:.26rem; min-width:0; flex:1; }
+    #player-status strong { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:.82rem; }
+    #player-status span { color:rgba(241,245,255,.66); font-size:.72rem; }
+    .wave { display:flex; align-items:flex-end; gap:2px; height:25px; margin-left:.2rem; }
+    .wave span { width:3px; border-radius:999px; background:color-mix(in srgb, var(--accent) 74%, white 26%); height:18%; transform-origin:bottom; animation:wave 1.15s ease-in-out infinite; animation-play-state:paused; opacity:.85; }
+    body.audio-playing:not(.muted) .wave span { animation-play-state:running; }
+    @keyframes wave { 0%,100%{transform:scaleY(.35)} 50%{transform:scaleY(1)} }
+    #loader { position:fixed; inset:0; z-index:5; display:grid; place-items:center; background:radial-gradient(circle at center, rgba(18,21,30,.9), rgba(4,5,7,.97)); color:rgba(236,242,255,.92); letter-spacing:.15em; text-transform:uppercase; font-size:.8rem; transition:opacity .3s ease; }
+    #loader.hidden { opacity:0; pointer-events:none; }
+    @media (max-width:800px){ .overlay{padding:1rem;} .project-info{margin-top:4.6rem;} .copy-row{grid-template-columns:1fr;} .divider{display:none;} .ghost-index{top:-6.5rem;} }
+  </style>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.164.1/build/three.module.js"
+    }
+  }
+  </script>
+</head>
+<body>
+  <canvas id="scene" aria-label="3D project timeline"></canvas>
+  <div id="loader">Loading hero.webp…</div>
+  <div class="overlay"><div class="project-stack"><div class="ghost-index" id="ghost-index"><span data-index="1">01</span><span data-index="2">02</span><span data-index="3">03</span><span data-index="4">04</span></div><div id="project-details"></div></div></div>
+  <div id="player" role="group" aria-label="Ambient player"><button id="play-toggle" aria-label="Play ambient sound">▶</button><button id="mute-toggle" aria-label="Mute ambient sound">🔊</button><div id="player-status"><strong id="player-title">Ambient paused</strong><span id="player-sub">Gesture to start audio</span></div><div class="wave" aria-hidden="true" id="wave"></div></div>
+  <script type="module">
+    import * as THREE from 'three';
+    const STORAGE_KEY='seniorDevPortfolioConfig';
+    const defaultProjects=[{id:'hero',sceneLabel:'Identity Layer',title:'Senior Developer — Systems, Product, Mentorship',caption:'Building resilient products with intentional architecture, measurable outcomes, and calm execution under pressure.',meta:'repo: mjpt1/mohsen · commits: 1,884 · last sync: 2026-05-20',stack:'Leadership / Architecture / TypeScript',accent:'#57f3ff',volume:.35,github:'https://github.com/',devto:'https://dev.to/'},{id:'scene-2',sceneLabel:'Project 01',title:'Realtime Collaboration Platform',caption:'WebRTC whiteboard + CRDT persistence with conflict-free editing and low-latency regional routing.',meta:'watchers: 512 · prs merged: 149 · uptime: 99.98%',stack:'WebRTC / Node.js / Redis Streams',accent:'#8ab4ff',volume:.28,github:'https://github.com/',devto:'https://dev.to/'},{id:'scene-3',sceneLabel:'Project 02',title:'Cloud-Native API Mesh',caption:'Edge-ready observability and policy-driven auth orchestration for distributed service fleets.',meta:'latency p95: 76ms · services: 42 · traces/day: 3.4M',stack:'Go / Kubernetes / OpenTelemetry',accent:'#ffa657',volume:.22,github:'https://github.com/',devto:'https://dev.to/'},{id:'scene-4',sceneLabel:'Project 03',title:'AI Workflow Studio',caption:'Composable retrieval + orchestration pipelines shipping deterministic agent behavior in production.',meta:'pipelines: 63 · eval score: 91.4 · deployments: 230',stack:'Python / FastAPI / Vector DB',accent:'#c2ff6f',volume:.26,github:'https://github.com/',devto:'https://dev.to/'},{id:'scene-5',sceneLabel:'Project 04',title:'Design System Runtime',caption:'Tokenized, multi-brand component runtime with zero-downtime migrations and static analysis checks.',meta:'packages: 124 · adoption: 18 teams · visual diffs: 0 regressions',stack:'React / Storybook / Playwright',accent:'#ff82d0',volume:.25,github:'https://github.com/',devto:'https://dev.to/'}];
+    const userConfig=safeParse(localStorage.getItem(STORAGE_KEY))||{}; const projects=mergeProjects(defaultProjects,userConfig.projects);
+    const sceneCanvas=document.getElementById('scene'),loaderEl=document.getElementById('loader'),detailsEl=document.getElementById('project-details'),ghostIndexEl=document.getElementById('ghost-index'),playBtn=document.getElementById('play-toggle'),muteBtn=document.getElementById('mute-toggle'),playerTitle=document.getElementById('player-title'),playerSub=document.getElementById('player-sub');
+    const renderer=new THREE.WebGLRenderer({canvas:sceneCanvas,antialias:true,alpha:true}); renderer.setPixelRatio(Math.min(window.devicePixelRatio,2)); renderer.setSize(window.innerWidth,window.innerHeight);
+    const scene=new THREE.Scene(); scene.fog=new THREE.FogExp2(0x05070b,.09); const camera=new THREE.PerspectiveCamera(56,window.innerWidth/window.innerHeight,.1,130); camera.position.z=4;
+    const zStep=8, planes=[]; const colorBg=new THREE.Mesh(new THREE.PlaneGeometry(40,40),new THREE.MeshBasicMaterial({color:0x06080d})); colorBg.position.z=-19; scene.add(colorBg); const ambient=new THREE.AmbientLight(0xffffff,.8), keyLight=new THREE.DirectionalLight(0xffffff,.8); keyLight.position.set(2,4,4); scene.add(ambient,keyLight);
+    const textureLoader=new THREE.TextureLoader(); const audioCtx=new (window.AudioContext||window.webkitAudioContext)(); const audioNodes=[]; let isPlaying=false,isMuted=false,userInteracted=false,activeIndex=0;
+    buildWaveBars(); renderProjectCards();
+    try{const heroTexture=await loadTexture('hero.webp'); createPlane(0,heroTexture,projects[0].accent);}catch{createPlane(0,null,projects[0].accent);}
+    startScene(); loaderEl.classList.add('hidden'); setTimeout(()=>loaderEl.remove(),360); loadSceneChain(1); prepareAudio(); activateProject(0);
+    function startScene(){for(let i=1;i<projects.length;i++) createPlane(i,null,projects[i].accent); animate();}
+    async function loadSceneChain(startIndex){for(let i=startIndex;i<projects.length;i++){let tex=null; try{tex=await loadTexture(`scene${i+1}.webp`);}catch{} applyTexture(i,tex,projects[i].accent);}}
+    function createPlane(index,texture,accent){const geometry=new THREE.PlaneGeometry(8,4.65,40,40); const material=new THREE.MeshStandardMaterial({map:texture,color:texture?0xffffff:new THREE.Color(accent).multiplyScalar(.55),emissive:new THREE.Color(accent).multiplyScalar(.18),roughness:.52,metalness:.18,transparent:true,opacity:.98}); const plane=new THREE.Mesh(geometry,material); plane.position.set(index%2?1.05:-1.05,0,-index*zStep); plane.rotation.y=index%2?-.18:.18; scene.add(plane); planes[index]=plane;}
+    function applyTexture(index,texture,accent){if(!planes[index])return; if(texture){planes[index].material.map=texture; planes[index].material.color.set(0xffffff);}else{planes[index].material.color.set(new THREE.Color(accent).multiplyScalar(.55));} planes[index].material.needsUpdate=true;}
+    function loadTexture(url){return new Promise((resolve,reject)=>textureLoader.load(url,(texture)=>{texture.colorSpace=THREE.SRGBColorSpace; texture.anisotropy=8; resolve(texture);},undefined,reject));}
+    function animate(){requestAnimationFrame(animate); const maxScroll=Math.max(document.documentElement.scrollHeight-window.innerHeight,1),scrollProgress=window.scrollY/maxScroll; camera.position.z=4-scrollProgress*(zStep*(projects.length-1)+2.4); camera.position.x=Math.sin(scrollProgress*Math.PI*2)*.55; planes.forEach((plane,i)=>{if(!plane)return; const dist=Math.abs(camera.position.z+(i*zStep)),focus=Math.max(0,1-dist/(zStep*1.1)); plane.position.y=Math.sin(scrollProgress*7+i*.35)*.24; plane.rotation.z=(scrollProgress*.15)*(i%2?-1:1); plane.material.emissiveIntensity=.22+focus*.46;}); const nextIndex=clamp(Math.round((4-camera.position.z)/zStep),0,projects.length-1); if(nextIndex!==activeIndex) activateProject(nextIndex); renderer.render(scene,camera);}
+    function activateProject(index){activeIndex=index; detailsEl.querySelectorAll('.project-info').forEach((card,i)=>card.classList.toggle('active',i===index)); const ghostTarget=clamp(index,1,4); ghostIndexEl.querySelectorAll('span').forEach((item)=>item.classList.toggle('active',Number(item.dataset.index)===ghostTarget)); document.documentElement.style.setProperty('--accent',projects[index].accent||'#57f3ff'); playerTitle.textContent=isPlaying?`Ambient • ${projects[index].sceneLabel}`:'Ambient paused'; playerSub.textContent=isPlaying?projects[index].stack:'Gesture to start audio'; updateAudioMix(true);}
+    function renderProjectCards(){detailsEl.innerHTML=projects.map((project)=>`<article class="project-info"><div class="label">${escapeHtml(project.sceneLabel)}<span class="accent-line"></span></div><h1>${escapeHtml(project.title)}</h1><div class="copy-row"><p class="caption">${escapeHtml(project.stack)}</p><div class="divider" aria-hidden="true"></div><p class="caption">${escapeHtml(project.caption)}</p></div><div class="meta">${escapeHtml(project.meta)}</div><div class="links"><a href="${escapeAttr(project.github)}" target="_blank" rel="noreferrer">GitHub</a><a href="${escapeAttr(project.devto)}" target="_blank" rel="noreferrer">Dev.to</a></div></article>`).join('');}
+    function prepareAudio(){projects.forEach((project,index)=>{const audio=new Audio(); audio.src=createAmbientDataURI(index+1); audio.loop=true; audio.crossOrigin='anonymous'; audio.preload='auto'; const source=audioCtx.createMediaElementSource(audio),gain=audioCtx.createGain(); gain.gain.value=0; source.connect(gain).connect(audioCtx.destination); audioNodes.push({audio,gain,volume:clamp(Number(project.volume)||.25,0,1)});}); registerAutoplayGesture();}
+    function registerAutoplayGesture(){const onceStart=()=>{if(userInteracted)return; userInteracted=true; setTimeout(()=>{startPlayback();},80);}; ['scroll','click','keydown','touchstart'].forEach((eventName)=>window.addEventListener(eventName,onceStart,{once:true,passive:true}));}
+    async function startPlayback(){await audioCtx.resume(); await Promise.all(audioNodes.map(async({audio})=>{try{await audio.play();}catch{}})); isPlaying=true; document.body.classList.add('audio-playing'); playBtn.textContent='❚❚'; playerTitle.textContent=`Ambient • ${projects[activeIndex].sceneLabel}`; playerSub.textContent=projects[activeIndex].stack; updateAudioMix(false);}
+    function stopPlayback(){isPlaying=false; audioNodes.forEach(({audio,gain})=>{gain.gain.cancelScheduledValues(audioCtx.currentTime); gain.gain.setValueAtTime(0,audioCtx.currentTime); audio.pause();}); document.body.classList.remove('audio-playing'); playBtn.textContent='▶'; playerTitle.textContent='Ambient paused'; playerSub.textContent='Gesture to start audio';}
+    function updateAudioMix(soft=false){if(!audioNodes.length)return; const now=audioCtx.currentTime,fade=soft?.85:.62; audioNodes.forEach(({gain,volume},i)=>{const target=(isPlaying&&!isMuted&&i===activeIndex)?volume:0; gain.gain.cancelScheduledValues(now); gain.gain.setValueAtTime(gain.gain.value,now); gain.gain.linearRampToValueAtTime(target,now+fade);});}
+    playBtn.addEventListener('click',async()=>{if(!isPlaying){await startPlayback();}else{stopPlayback();}});
+    muteBtn.addEventListener('click',()=>{isMuted=!isMuted; document.body.classList.toggle('muted',isMuted); muteBtn.textContent=isMuted?'🔇':'🔊'; updateAudioMix(false);});
+    window.addEventListener('resize',()=>{camera.aspect=window.innerWidth/window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth,window.innerHeight);});
+    function buildWaveBars(){document.getElementById('wave').innerHTML=Array.from({length:18},(_,i)=>`<span style="animation-delay:${(i%7)*.11}s;animation-duration:${.9+(i%5)*.16}s"></span>`).join('');}
+    function createAmbientDataURI(seed=1){const sampleRate=22050,total=sampleRate*7,data=new Int16Array(total); for(let i=0;i<total;i++){const t=i/sampleRate,carrier=Math.sin(2*Math.PI*(70+seed*9)*t)*.22,noise=(Math.sin((i+seed*137)*12.9898)*43758.5453)%1,hiss=(noise-.5)*.08,pulse=Math.sin(2*Math.PI*(2+seed*.55)*t)*.05,sample=(carrier+hiss+pulse)*.32; data[i]=Math.max(-1,Math.min(1,sample))*32767;} return pcmToWavDataURI(data,sampleRate);}
+    function pcmToWavDataURI(pcm16,sampleRate){const header=new ArrayBuffer(44),view=new DataView(header); writeString(view,0,'RIFF'); view.setUint32(4,36+pcm16.length*2,true); writeString(view,8,'WAVE'); writeString(view,12,'fmt '); view.setUint32(16,16,true); view.setUint16(20,1,true); view.setUint16(22,1,true); view.setUint32(24,sampleRate,true); view.setUint32(28,sampleRate*2,true); view.setUint16(32,2,true); view.setUint16(34,16,true); writeString(view,36,'data'); view.setUint32(40,pcm16.length*2,true); const wav=new Uint8Array(44+pcm16.length*2); wav.set(new Uint8Array(header),0); for(let i=0;i<pcm16.length;i++){const val=pcm16[i]; wav[44+i*2]=val&255; wav[45+i*2]=(val>>8)&255;} let binary=''; const chunk=0x8000; for(let i=0;i<wav.length;i+=chunk) binary+=String.fromCharCode(...wav.subarray(i,i+chunk)); return `data:audio/wav;base64,${btoa(binary)}`;}
+    function writeString(view,offset,str){for(let i=0;i<str.length;i++) view.setUint8(offset+i,str.charCodeAt(i));}
+    function safeParse(value){try{return JSON.parse(value);}catch{return null;}}
+    function mergeProjects(base,incoming=[]){if(!Array.isArray(incoming)) return base; return base.map((project,i)=>{const patch=incoming[i]||{}; return {...project,title:patch.title||project.title,caption:patch.caption||project.caption,stack:patch.stack||project.stack,accent:patch.accent||project.accent,meta:patch.meta||project.meta,github:patch.github||project.github,devto:patch.devto||project.devto,volume:Number.isFinite(Number(patch.volume))?Number(patch.volume):project.volume,sceneLabel:patch.sceneLabel||project.sceneLabel};});}
+    function escapeHtml(value){return String(value||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll(\"'\",'&#39;');}
+    function escapeAttr(value){return escapeHtml(value).replaceAll('`','&#96;');}
+    function clamp(value,min,max){return Math.max(min,Math.min(max,value));}
+  </script>
+</body>
+</html>

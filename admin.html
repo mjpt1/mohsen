@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Portfolio Config Admin</title>
+  <style>
+    :root { color-scheme: dark; --surface:rgba(20,20,34,.56); --stroke:rgba(255,255,255,.16); --text:#eff2ff; --muted:rgba(241,245,255,.66); --ok:#6ef1d7; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; background:radial-gradient(circle at top,#111526,#07080f 45%,#04050a 100%); color:var(--text); font:14px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif; padding:clamp(1rem,2.5vw,2rem); }
+    .wrap { max-width:1150px; margin:0 auto; display:grid; gap:.9rem; }
+    .glass { background:var(--surface); border:1px solid var(--stroke); border-radius:16px; backdrop-filter:blur(16px); box-shadow:0 26px 64px rgba(0,0,0,.34); padding:.95rem; }
+    h1 { margin:0; font-size:1.4rem; }
+    .top { display:flex; flex-wrap:wrap; gap:.7rem; align-items:center; justify-content:space-between; }
+    .status { color:var(--muted); font-size:.9rem; } .status strong{color:var(--ok);}
+    .actions { display:flex; gap:.5rem; flex-wrap:wrap; }
+    button { border:1px solid var(--stroke); background:rgba(255,255,255,.08); color:var(--text); border-radius:10px; padding:.45rem .7rem; cursor:pointer; font:inherit; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:.75rem; }
+    .panel { background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:.7rem; display:grid; gap:.55rem; }
+    .panel h3 { margin:0; font-size:.88rem; text-transform:uppercase; letter-spacing:.08em; color:rgba(246,250,255,.82); }
+    .row { display:grid; gap:.3rem; }
+    label { font-size:.76rem; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+    input,textarea { width:100%; color:var(--text); border-radius:8px; border:1px solid rgba(255,255,255,.16); background:rgba(8,10,18,.7); padding:.5rem; font:inherit; }
+    textarea { min-height:80px; resize:vertical; }
+    .footer { color:var(--muted); font-size:.8rem; }
+    .locked .lockable { opacity:.62; pointer-events:none; }
+  </style>
+</head>
+<body>
+  <main class="wrap" id="app">
+    <section class="glass top">
+      <h1>Portfolio Admin</h1>
+      <div class="status" id="state">Mode: <strong>View Open / Edit Locked</strong></div>
+      <div class="actions">
+        <button id="unlock">Unlock Edit</button>
+        <button id="save" class="lockable">Save localStorage</button>
+        <button id="export">Export JSON</button>
+      </div>
+    </section>
+    <section class="glass lockable" id="panels"></section>
+    <section class="glass footer">Config key: <code>seniorDevPortfolioConfig</code>. No server required.</section>
+  </main>
+  <script>
+    const STORAGE_KEY='seniorDevPortfolioConfig', ADMIN_PASSWORD='mohsen-admin';
+    const defaultConfig={projects:[
+      {sceneLabel:'Identity Layer',title:'Senior Developer — Systems, Product, Mentorship',caption:'Building resilient products with intentional architecture.',stack:'Leadership / Architecture / TypeScript',accent:'#57f3ff',volume:.35,github:'https://github.com/',devto:'https://dev.to/',meta:'repo: mjpt1/mohsen · commits: 1,884 · last sync: 2026-05-20'},
+      {sceneLabel:'Project 01',title:'Realtime Collaboration Platform',caption:'WebRTC whiteboard + CRDT persistence.',stack:'WebRTC / Node.js / Redis Streams',accent:'#8ab4ff',volume:.28,github:'https://github.com/',devto:'https://dev.to/',meta:'watchers: 512 · prs merged: 149 · uptime: 99.98%'},
+      {sceneLabel:'Project 02',title:'Cloud-Native API Mesh',caption:'Edge-ready observability and auth orchestration.',stack:'Go / Kubernetes / OpenTelemetry',accent:'#ffa657',volume:.22,github:'https://github.com/',devto:'https://dev.to/',meta:'latency p95: 76ms · services: 42 · traces/day: 3.4M'},
+      {sceneLabel:'Project 03',title:'AI Workflow Studio',caption:'Composable retrieval + orchestration pipelines.',stack:'Python / FastAPI / Vector DB',accent:'#c2ff6f',volume:.26,github:'https://github.com/',devto:'https://dev.to/',meta:'pipelines: 63 · eval score: 91.4 · deployments: 230'},
+      {sceneLabel:'Project 04',title:'Design System Runtime',caption:'Tokenized, multi-brand component runtime.',stack:'React / Storybook / Playwright',accent:'#ff82d0',volume:.25,github:'https://github.com/',devto:'https://dev.to/',meta:'packages: 124 · adoption: 18 teams · visual diffs: 0 regressions'}
+    ]};
+    const app=document.getElementById('app'),panels=document.getElementById('panels'),stateEl=document.getElementById('state'),unlockBtn=document.getElementById('unlock'),saveBtn=document.getElementById('save'),exportBtn=document.getElementById('export');
+    const config=mergeConfig(defaultConfig,readStored()); let unlocked=false; renderPanels(); setLockedState(true);
+    unlockBtn.addEventListener('click',()=>{if(unlocked){unlocked=false; setLockedState(true); return;} const typed=prompt('Enter admin password'); if(typed===ADMIN_PASSWORD){unlocked=true; setLockedState(false);} else if(typed!==null){alert('Incorrect password.');}});
+    saveBtn.addEventListener('click',()=>{if(!unlocked) return; syncConfigFromInputs(); localStorage.setItem(STORAGE_KEY,JSON.stringify(config,null,2)); flashStatus('Saved to localStorage.');});
+    exportBtn.addEventListener('click',()=>{syncConfigFromInputs(); const blob=new Blob([JSON.stringify(config,null,2)],{type:'application/json'}),a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='portfolio-config.json'; a.click(); URL.revokeObjectURL(a.href);});
+    function setLockedState(locked){app.classList.toggle('locked',locked); stateEl.innerHTML=locked?'Mode: <strong>View Open / Edit Locked</strong>':'Mode: <strong>Edit Unlocked</strong>'; unlockBtn.textContent=locked?'Unlock Edit':'Lock Edit';}
+    function renderPanels(){panels.innerHTML=`<div class="grid">${config.projects.map((project,i)=>`<article class="panel"><h3>Project ${String(i+1).padStart(2,'0')}</h3>${field(i,'sceneLabel','Scene Label')}${field(i,'title','Title')}${field(i,'caption','Description',true)}${field(i,'stack','Stack Label')}${field(i,'meta','Meta Coordinate Line')}<div class="row"><label for="p-${i}-accent">Accent Color</label><input class="cfg-input" id="p-${i}-accent" data-index="${i}" data-key="accent" type="color" value="${escapeAttr(project.accent||'#57f3ff')}"></div><div class="row"><label for="p-${i}-volume">Audio Volume (0 - 1)</label><input class="cfg-input" id="p-${i}-volume" data-index="${i}" data-key="volume" type="number" min="0" max="1" step="0.01" value="${escapeAttr(project.volume ?? 0.25)}"></div>${field(i,'github','GitHub Link')}${field(i,'devto','Dev.to Link')}</article>`).join('')}</div>`;}
+    function field(index,key,label,textarea=false){const value=config.projects[index][key]??''; return `<div class="row"><label for="p-${index}-${key}">${label}</label>${textarea?`<textarea class="cfg-input" id="p-${index}-${key}" data-index="${index}" data-key="${key}">${escapeHtml(value)}</textarea>`:`<input class="cfg-input" id="p-${index}-${key}" data-index="${index}" data-key="${key}" value="${escapeAttr(value)}">`}</div>`;}
+    function syncConfigFromInputs(){document.querySelectorAll('.cfg-input').forEach((el)=>{const index=Number(el.dataset.index),key=el.dataset.key,raw=el.value; config.projects[index][key]=key==='volume'?clamp(Number(raw),0,1):raw;});}
+    function mergeConfig(base,incoming){if(!incoming||!Array.isArray(incoming.projects)) return structuredClone(base); return {projects:base.projects.map((p,i)=>({...p,...(incoming.projects[i]||{})}))};}
+    function readStored(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY));}catch{return null;}}
+    function flashStatus(msg){stateEl.innerHTML=`Mode: <strong>${msg}</strong>`; setTimeout(()=>setLockedState(!unlocked),1500);}
+    function clamp(v,min,max){return Math.max(min,Math.min(max,Number.isFinite(v)?v:min));}
+    function escapeHtml(v){return String(v||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');}
+    function escapeAttr(v){return escapeHtml(v).replaceAll('"','&quot;').replaceAll("'",'&#39;');}
+  </script>
+</body>
+</html>
