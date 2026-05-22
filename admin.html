@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - Senior Developer Portfolio</title>
+  <style>
+    :root {
+      --bg: #05070b;
+      --panel: rgba(12, 16, 24, 0.72);
+      --line: rgba(255,255,255,0.10);
+      --text: #f5f7fb;
+      --muted: rgba(255,255,255,0.65);
+      --soft: rgba(255,255,255,0.35);
+      --accent: #58f2c1;
+      --danger: #ff6b6b;
+      --radius: 18px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; font-family: system-ui, -apple-system, sans-serif; background:
+      radial-gradient(circle at 20% 20%, rgba(88,242,193,0.10), transparent 24%),
+      radial-gradient(circle at 80% 15%, rgba(255,120,92,0.12), transparent 24%),
+      linear-gradient(180deg, #081018, #05070b); color: var(--text); }
+    body { min-height: 100vh; }
+    .wrap { max-width: 1400px; margin: 0 auto; padding: 32px; }
+    .topbar { display: flex; justify-content: space-between; gap: 16px; align-items: center; margin-bottom: 24px; }
+    .title h1 { margin: 0; font-size: clamp(24px, 4vw, 40px); }
+    .title p { margin: 6px 0 0; color: var(--muted); }
+    .btn { border: 1px solid var(--line); background: rgba(255,255,255,0.04); color: var(--text); padding: 12px 16px; border-radius: 12px; cursor: pointer; transition: 0.2s ease; }
+    .btn:hover { border-color: var(--accent); }
+    .btn.primary { background: var(--accent); color: #071014; font-weight: 700; border-color: var(--accent); }
+    .btn.danger { color: var(--danger); border-color: rgba(255,107,107,0.35); }
+    .grid { display: grid; grid-template-columns: 280px 1fr; gap: 20px; }
+    @media (max-width: 980px) { .grid { grid-template-columns: 1fr; } }
+    .panel, .glass { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); backdrop-filter: blur(18px); box-shadow: 0 20px 60px rgba(0,0,0,0.25); }
+    .sidebar { padding: 18px; position: sticky; top: 18px; height: fit-content; }
+    .nav { display: grid; gap: 8px; }
+    .nav button { text-align: left; width: 100%; }
+    .nav button.active { border-color: var(--accent); color: var(--accent); }
+    .stat { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; line-height: 1.8; }
+    .main { min-width: 0; }
+    .section { display: none; }
+    .section.active { display: block; }
+    .section h2 { margin: 0 0 18px; font-size: 26px; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+    .card { padding: 16px; }
+    .card h3 { margin: 0 0 10px; }
+    .card p { margin: 0 0 12px; color: var(--muted); line-height: 1.6; }
+    .tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+    .tag { padding: 6px 10px; border: 1px solid var(--line); border-radius: 999px; color: var(--soft); font-size: 12px; }
+    .card-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .form { display: grid; gap: 14px; padding: 18px; }
+    .field { display: grid; gap: 8px; }
+    .field label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.18em; color: var(--muted); }
+    .field input, .field textarea, .field select { width: 100%; padding: 13px 14px; border-radius: 12px; border: 1px solid var(--line); background: rgba(255,255,255,0.04); color: var(--text); outline: none; }
+    .field textarea { min-height: 110px; resize: vertical; }
+    .two { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px; }
+    @media (max-width: 700px) { .two { grid-template-columns: 1fr; } }
+    .login { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(0,0,0,0.72); backdrop-filter: blur(8px); z-index: 50; }
+    .login.hidden { display: none; }
+    .login-box { width: min(92vw, 420px); padding: 24px; }
+    .login-box h2 { margin: 0 0 10px; }
+    .status { margin-top: 18px; padding: 14px 16px; border: 1px solid rgba(88,242,193,0.18); background: rgba(88,242,193,0.08); border-radius: 12px; color: var(--accent); }
+    .preview { margin-top: 18px; padding: 16px; background: rgba(0,0,0,0.35); border: 1px solid var(--line); border-radius: 12px; overflow: auto; max-height: 420px; }
+    pre { margin: 0; white-space: pre-wrap; word-break: break-word; color: var(--soft); font-size: 13px; line-height: 1.55; }
+  </style>
+</head>
+<body>
+  <div class="login" id="loginOverlay">
+    <div class="panel login-box">
+      <h2>Admin Access</h2>
+      <p style="color:var(--muted);margin:0 0 16px">View-open / edit-locked local config. No server required.</p>
+      <div class="field">
+        <label>Password</label>
+        <input id="passwordInput" type="password" placeholder="Enter password">
+      </div>
+      <div style="display:flex;gap:10px;margin-top:16px">
+        <button class="btn primary" id="loginBtn">Unlock</button>
+      </div>
+      <div id="loginError" style="margin-top:12px;color:var(--danger);display:none">Incorrect password</div>
+    </div>
+  </div>
+
+  <div class="wrap" id="app" style="display:none">
+    <div class="topbar">
+      <div class="title">
+        <h1>Portfolio Admin</h1>
+        <p>Stored in localStorage with JSON export.</p>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn" id="exportBtn">Export JSON</button>
+        <button class="btn" id="resetBtn">Reset Defaults</button>
+        <button class="btn danger" id="lockBtn">Lock</button>
+      </div>
+    </div>
+
+    <div class="grid">
+      <aside class="panel sidebar">
+        <div class="nav">
+          <button class="btn active" data-section="projects">Projects</button>
+          <button class="btn" data-section="branding">Branding</button>
+          <button class="btn" data-section="audio">Audio</button>
+          <button class="btn" data-section="links">Links</button>
+          <button class="btn" data-section="export">Export</button>
+        </div>
+        <div class="stat" id="statBox"></div>
+      </aside>
+
+      <main class="main">
+        <section class="section active" id="section-projects">
+          <h2>Project Descriptions</h2>
+          <div class="cards" id="projectCards"></div>
+        </section>
+
+        <section class="section" id="section-branding">
+          <h2>Branding</h2>
+          <div class="panel form">
+            <div class="two">
+              <div class="field"><label>Accent Color</label><input id="accentColor" type="color"></div>
+              <div class="field"><label>Background Color</label><input id="bgColor" type="color"></div>
+            </div>
+            <div class="two">
+              <div class="field"><label>Site Title</label><input id="siteTitle" type="text"></div>
+              <div class="field"><label>Meta Coordinates</label><input id="metaCoords" type="text"></div>
+            </div>
+            <button class="btn primary" id="saveBranding">Save Branding</button>
+          </div>
+        </section>
+
+        <section class="section" id="section-audio">
+          <h2>Audio Volumes</h2>
+          <div class="panel form" id="audioForm"></div>
+        </section>
+
+        <section class="section" id="section-links">
+          <h2>External Links</h2>
+          <div class="panel form">
+            <div class="two">
+              <div class="field"><label>GitHub</label><input id="githubUrl" type="url"></div>
+              <div class="field"><label>Dev.to</label><input id="devtoUrl" type="url"></div>
+            </div>
+            <button class="btn primary" id="saveLinks">Save Links</button>
+          </div>
+        </section>
+
+        <section class="section" id="section-export">
+          <h2>Export</h2>
+          <div class="panel form">
+            <div class="field"><label>JSON Preview</label><div class="preview"><pre id="jsonPreview"></pre></div></div>
+            <button class="btn primary" id="exportJsonBtn">Download JSON</button>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div class="status" id="statusBar">Ready.</div>
+  </div>
+
+  <script>
+    const PASSWORD = 'admin123';
+    const STORAGE_KEY = 'portfolio-config';
+    const defaults = {
+      branding: { siteTitle: 'Senior Developer Portfolio', accentColor: '#58f2c1', bgColor: '#06070a', metaCoords: 'LAT: 35.6892° N | LON: 51.3890° E' },
+      links: { githubUrl: 'https://github.com/username', devtoUrl: 'https://dev.to/username' },
+      audio: { masterVolume: 0.30, volumes: [0.30, 0.28, 0.26, 0.24, 0.22] },
+      projects: [
+        { id: '00', label: 'Intro', title: 'Creative Developer', description: 'Cinematic hero scene and brand story.', stack: 'Three.js, Web Audio, Motion UI', accent: '#58f2c1', github: 'https://github.com/username/intro', devto: 'https://dev.to/username/intro' },
+        { id: '01', label: 'DevOps', title: 'Infra Dashboard', description: 'Observability cockpit with live telemetry.', stack: 'Kubernetes, Prometheus, Grafana', accent: '#7eb6ff', github: 'https://github.com/username/devops', devto: 'https://dev.to/username/devops' },
+        { id: '02', label: 'Web', title: 'E-Commerce', description: 'Commerce and inventory flow with clean UX.', stack: 'Next.js, Redis, Payments', accent: '#ff9464', github: 'https://github.com/username/web', devto: 'https://dev.to/username/web' },
+        { id: '03', label: 'AI', title: 'LLM Chat', description: 'Realtime assistant with threaded responses.', stack: 'WebSockets, OpenAI, RAG', accent: '#c08cff', github: 'https://github.com/username/ai', devto: 'https://dev.to/username/ai' },
+        { id: '04', label: '3D', title: 'WebGL Viewer', description: 'High-density scene rendering with depth.', stack: 'Three.js, GLSL, WebGL 2', accent: '#58f2c1', github: 'https://github.com/username/3d', devto: 'https://dev.to/username/3d' }
+      ]
+    };
+
+    const els = {
+      loginOverlay: document.getElementById('loginOverlay'),
+      loginError: document.getElementById('loginError'),
+      passwordInput: document.getElementById('passwordInput'),
+      app: document.getElementById('app'),
+      statusBar: document.getElementById('statusBar'),
+      statBox: document.getElementById('statBox'),
+      projectCards: document.getElementById('projectCards'),
+      audioForm: document.getElementById('audioForm'),
+      jsonPreview: document.getElementById('jsonPreview'),
+    };
+
+    let config = loadConfig();
+
+    function loadConfig() {
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY)) || structuredClone(defaults);
+      } catch {
+        return structuredClone(defaults);
+      }
+    }
+
+    function saveConfig() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(config, null, 2));
+      renderAll();
+      setStatus('Saved to localStorage.');
+    }
+
+    function setStatus(text) { els.statusBar.textContent = text; }
+
+    function renderAll() {
+      document.documentElement.style.setProperty('--accent', config.branding.accentColor);
+      document.documentElement.style.setProperty('--bg', config.branding.bgColor);
+      document.title = config.branding.siteTitle;
+      els.projectCards.innerHTML = config.projects.map((p, i) => `
+        <div class="panel card">
+          <h3>${p.id} · ${p.title}</h3>
+          <p>${p.description}</p>
+          <div class="tags">${p.stack.split(',').map(s => `<span class="tag">${s.trim()}</span>`).join('')}</div>
+          <div class="two">
+            <div class="field"><label>Label</label><input data-project="${i}" data-key="label" value="${p.label}"></div>
+            <div class="field"><label>Accent</label><input data-project="${i}" data-key="accent" type="color" value="${p.accent}"></div>
+          </div>
+          <div class="field"><label>Description</label><textarea data-project="${i}" data-key="description">${p.description}</textarea></div>
+          <div class="field"><label>Stack</label><input data-project="${i}" data-key="stack" value="${p.stack}"></div>
+          <div class="two">
+            <div class="field"><label>GitHub</label><input data-project="${i}" data-key="github" value="${p.github}"></div>
+            <div class="field"><label>Dev.to</label><input data-project="${i}" data-key="devto" value="${p.devto}"></div>
+          </div>
+        </div>
+      `).join('');
+
+      els.audioForm.innerHTML = config.audio.volumes.map((v, i) => `
+        <div class="field">
+          <label>Project ${String(i + 1).padStart(2, '0')} Volume</label>
+          <input type="range" min="0" max="1" step="0.01" value="${v}" data-audio-index="${i}">
+        </div>
+      `).join('') + `
+        <div class="field"><label>Master Volume</label><input id="masterVolume" type="range" min="0" max="1" step="0.01" value="${config.audio.masterVolume}"></div>
+        <button class="btn primary" id="saveAudio">Save Audio</button>
+      `;
+
+      document.getElementById('accentColor').value = config.branding.accentColor;
+      document.getElementById('bgColor').value = config.branding.bgColor;
+      document.getElementById('siteTitle').value = config.branding.siteTitle;
+      document.getElementById('metaCoords').value = config.branding.metaCoords;
+      document.getElementById('githubUrl').value = config.links.githubUrl;
+      document.getElementById('devtoUrl').value = config.links.devtoUrl;
+
+      els.statBox.innerHTML = `Projects: <strong>${config.projects.length}</strong><br>Audio tracks: <strong>${config.audio.volumes.length}</strong><br>Storage key: <strong>${STORAGE_KEY}</strong>`;
+      els.jsonPreview.textContent = JSON.stringify(config, null, 2);
+      bindDynamicControls();
+      bindButtons();
+    }
+
+    function bindDynamicControls() {
+      document.querySelectorAll('[data-project]').forEach(el => {
+        el.oninput = () => {
+          const i = Number(el.dataset.project);
+          const key = el.dataset.key;
+          config.projects[i][key] = el.value;
+          els.jsonPreview.textContent = JSON.stringify(config, null, 2);
+        };
+      });
+      document.querySelectorAll('[data-audio-index]').forEach(el => {
+        el.oninput = () => {
+          config.audio.volumes[Number(el.dataset.audioIndex)] = Number(el.value);
+          els.jsonPreview.textContent = JSON.stringify(config, null, 2);
+        };
+      });
+    }
+
+    function bindButtons() {
+      document.getElementById('saveBranding').onclick = () => {
+        config.branding.accentColor = document.getElementById('accentColor').value;
+        config.branding.bgColor = document.getElementById('bgColor').value;
+        config.branding.siteTitle = document.getElementById('siteTitle').value.trim();
+        config.branding.metaCoords = document.getElementById('metaCoords').value.trim();
+        saveConfig();
+      };
+      document.getElementById('saveLinks').onclick = () => {
+        config.links.githubUrl = document.getElementById('githubUrl').value.trim();
+        config.links.devtoUrl = document.getElementById('devtoUrl').value.trim();
+        saveConfig();
+      };
+      document.getElementById('saveAudio').onclick = () => {
+        config.audio.masterVolume = Number(document.getElementById('masterVolume').value);
+        saveConfig();
+      };
+      document.getElementById('exportJsonBtn').onclick = exportJson;
+      document.getElementById('exportBtn').onclick = exportJson;
+      document.getElementById('resetBtn').onclick = () => {
+        config = structuredClone(defaults);
+        saveConfig();
+      };
+    }
+
+    function exportJson() {
+      const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'portfolio-config.json';
+      a.click();
+      URL.revokeObjectURL(a.href);
+      setStatus('Exported JSON.');
+    }
+
+    document.querySelectorAll('.nav button').forEach(btn => {
+      btn.onclick = () => {
+        document.querySelectorAll('.nav button').forEach(x => x.classList.remove('active'));
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(`section-${btn.dataset.section}`).classList.add('active');
+      };
+    });
+
+    document.getElementById('loginBtn').onclick = () => {
+      if (els.passwordInput.value === PASSWORD) {
+        els.loginOverlay.classList.add('hidden');
+        els.app.style.display = 'block';
+        renderAll();
+      } else {
+        els.loginError.style.display = 'block';
+      }
+    };
+    els.passwordInput.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('loginBtn').click(); });
+    document.getElementById('lockBtn').onclick = () => { els.app.style.display = 'none'; els.loginOverlay.classList.remove('hidden'); els.passwordInput.value = ''; };
+
+    renderAll();
+  </script>
+</body>
+</html>

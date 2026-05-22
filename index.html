@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Senior Developer Portfolio</title>
+  <style>
+    :root {
+      --bg: #05070b;
+      --panel: rgba(10, 12, 18, 0.60);
+      --line: rgba(255, 255, 255, 0.10);
+      --text: #f5f7fb;
+      --muted: rgba(255, 255, 255, 0.64);
+      --soft: rgba(255, 255, 255, 0.36);
+      --accent: #58f2c1;
+      --accent2: #f6a04d;
+      --radius: 18px;
+      --shadow: 0 24px 80px rgba(0, 0, 0, 0.34);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); overflow-x: hidden; }
+    body {
+      min-height: 520vh;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(88,242,193,0.10), transparent 25%),
+        radial-gradient(circle at 85% 15%, rgba(246,160,77,0.10), transparent 22%),
+        linear-gradient(180deg, #071018 0%, #05070b 55%, #040406 100%);
+    }
+    canvas {
+      position: fixed; inset: 0; width: 100%; height: 100%; display: block; z-index: 1;
+    }
+    .loader {
+      position: fixed; inset: 0; z-index: 200;
+      display: grid; place-items: center;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(88,242,193,0.12), transparent 24%),
+        radial-gradient(circle at 80% 30%, rgba(246,160,77,0.10), transparent 24%),
+        linear-gradient(180deg, #070a10 0%, #030407 100%);
+      transition: opacity .55s ease, visibility .55s ease;
+    }
+    .loader.hide { opacity: 0; visibility: hidden; pointer-events: none; }
+    .loader-inner { display: grid; justify-items: center; gap: 18px; }
+    .loader-ring {
+      width: 66px; height: 66px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,.12);
+      border-top-color: var(--accent);
+      box-shadow: 0 0 40px rgba(88,242,193,.18);
+      animation: spin 1s linear infinite;
+    }
+    .loader-text {
+      font-size: 11px; letter-spacing: .34em; text-transform: uppercase; color: var(--muted);
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .hud { position: fixed; inset: 0; z-index: 20; pointer-events: none; }
+    .content {
+      position: absolute;
+      left: clamp(20px, 4vw, 68px);
+      bottom: clamp(88px, 12vh, 140px);
+      width: min(620px, calc(100vw - 40px));
+      pointer-events: none;
+    }
+    .copy-row { display: flex; gap: 18px; align-items: flex-start; }
+    .divider-vertical {
+      width: 1px; min-height: 86px;
+      background: linear-gradient(180deg, transparent, rgba(255,255,255,.28), transparent);
+      opacity: 0; transform: translateY(20px);
+      transition: opacity .65s ease, transform .9s cubic-bezier(.16,1,.3,1);
+    }
+    .content.active .divider-vertical { opacity: 1; transform: translateY(0); }
+
+    .copy-main { min-width: 0; flex: 1; }
+    .ghost-number {
+      position: absolute;
+      left: -6px; top: -82px;
+      font-size: clamp(92px, 13vw, 170px);
+      line-height: .9;
+      font-weight: 900;
+      letter-spacing: -.08em;
+      color: rgba(255,255,255,.03);
+      user-select: none;
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity .72s ease, transform .9s cubic-bezier(.16,1,.3,1);
+    }
+    .content.active .ghost-number { opacity: 1; transform: translateY(0); }
+
+    .project-label,
+    .project-title,
+    .project-caption,
+    .project-meta,
+    .project-links {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity .7s ease, transform .9s cubic-bezier(.16,1,.3,1);
+    }
+    .project-label {
+      position: relative;
+      display: inline-block;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .34em;
+      color: var(--muted);
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+    }
+    .project-label::after {
+      content: "";
+      position: absolute;
+      left: 0; bottom: 0;
+      width: 0; height: 2px;
+      border-radius: 2px;
+      background: var(--accent);
+      box-shadow: 0 0 18px rgba(88,242,193,.25);
+      transition: width .8s cubic-bezier(.16,1,.3,1);
+    }
+    .content.active .project-label::after { width: 100%; }
+    .project-title {
+      font-size: clamp(30px, 4.6vw, 58px);
+      line-height: 1.05;
+      font-weight: 700;
+      margin-bottom: 16px;
+      transition-delay: .08s;
+    }
+    .project-caption {
+      max-width: 500px;
+      font-size: clamp(13px, 2vw, 15px);
+      line-height: 1.7;
+      color: var(--muted);
+      margin-bottom: 20px;
+      transition-delay: .14s;
+    }
+    .project-meta {
+      font-size: 11px;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: var(--soft);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      margin-bottom: 20px;
+      transition-delay: .20s;
+    }
+    .project-links {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      pointer-events: auto;
+      transition-delay: .26s;
+    }
+    .btn-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 11px 16px;
+      border-radius: 12px;
+      color: var(--text);
+      text-decoration: none;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+      transition: transform .18s ease, border-color .18s ease, background .18s ease;
+    }
+    .btn-link:hover { transform: translateY(-1px); border-color: var(--accent); background: rgba(255,255,255,.08); }
+    .content.active .project-label,
+    .content.active .project-title,
+    .content.active .project-caption,
+    .content.active .project-meta,
+    .content.active .project-links {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .audio-player {
+      position: fixed;
+      right: clamp(16px, 3vw, 32px);
+      bottom: clamp(16px, 3vw, 32px);
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      backdrop-filter: blur(18px);
+      box-shadow: var(--shadow);
+      pointer-events: auto;
+    }
+    .audio-btn {
+      width: 38px; height: 38px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.04);
+      color: var(--text);
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+    }
+    .audio-btn:hover { border-color: var(--accent); }
+    .waveform { display: flex; align-items: flex-end; gap: 3px; height: 24px; }
+    .bar { width: 3px; border-radius: 2px; background: var(--accent); transition: height .14s ease; }
+
+    .scroll-indicator {
+      position: fixed;
+      left: 50%; bottom: 24px;
+      transform: translateX(-50%);
+      z-index: 30;
+      display: grid;
+      justify-items: center;
+      gap: 10px;
+      color: var(--soft);
+      font-size: 10px;
+      letter-spacing: .28em;
+      text-transform: uppercase;
+      opacity: 0;
+      transition: opacity .7s ease;
+      pointer-events: none;
+    }
+    .scroll-indicator.show { opacity: 1; }
+    .scroll-line {
+      width: 1px; height: 34px;
+      background: linear-gradient(180deg, var(--accent), transparent);
+      animation: pulse 1.4s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%, 100% { opacity: .5; transform: scaleY(1); } 50% { opacity: 1; transform: scaleY(1.2); } }
+  </style>
+</head>
+<body>
+  <div class="loader" id="loader">
+    <div class="loader-inner">
+      <div class="loader-ring"></div>
+      <div class="loader-text">Loading hero asset</div>
+    </div>
+  </div>
+
+  <canvas id="canvas"></canvas>
+  <div class="hud" id="hud"></div>
+
+  <div class="audio-player" aria-label="Audio controls">
+    <button class="audio-btn" id="playBtn" title="Play / Pause">▶</button>
+    <button class="audio-btn" id="muteBtn" title="Mute / Unmute">🔊</button>
+    <div class="waveform" aria-hidden="true">
+      <div class="bar" style="height:4px"></div>
+      <div class="bar" style="height:4px"></div>
+      <div class="bar" style="height:4px"></div>
+      <div class="bar" style="height:4px"></div>
+      <div class="bar" style="height:4px"></div>
+      <div class="bar" style="height:4px"></div>
+    </div>
+  </div>
+
+  <div class="scroll-indicator" id="scrollIndicator">
+    <div class="scroll-line"></div>
+    <span>Scroll</span>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+
+    const projects = [
+      { id: '00', label: 'Intro', title: 'Creative Developer', caption: 'A cinematic front-end portfolio with scroll-driven motion, layered type, and ambient sound.', meta: 'LAT 35.6892 | LON 51.3890 | BRAND / HERO', file: 'hero.webp', audio: 'audio1.wav', github: 'https://github.com/', devto: 'https://dev.to/' },
+      { id: '01', label: 'DevOps', title: 'Infra Dashboard', caption: 'Operational visibility with elegant telemetry and incident context.', meta: 'K8S / PROMETHEUS / GRAFANA | 2026', file: '2.png', audio: 'audio2.wav', github: 'https://github.com/', devto: 'https://dev.to/' },
+      { id: '02', label: 'Commerce', title: 'E-Commerce System', caption: 'A conversion-focused storefront with resilient inventory flows.', meta: 'NEXT.JS / REDIS / PAYMENTS | 112K EVENTS', file: '3.png', audio: 'audio3.wav', github: 'https://github.com/', devto: 'https://dev.to/' },
+      { id: '03', label: 'AI', title: 'LLM Collaboration Layer', caption: 'Streaming assistant experiences with low-latency model interactions.', meta: 'WEBSOCKETS / RAG / OPENAI | 04:13 UTC', file: '4.png', audio: 'audio4.wav', github: 'https://github.com/', devto: 'https://dev.to/' },
+      { id: '04', label: '3D', title: 'WebGL Experience', caption: 'High-density rendering for product storytelling and spatial UI.', meta: 'THREE.JS / GLSL / WEBGL 2 | 60 FPS', file: '5.png', audio: 'audio5.wav', github: 'https://github.com/', devto: 'https://dev.to/' }
+    ];
+
+    const hud = document.getElementById('hud');
+    hud.innerHTML = projects.map((project, index) => `
+      <section class="content" id="content-${index}">
+        <div class="ghost-number">${project.id}</div>
+        <div class="copy-row">
+          <div class="divider-vertical"></div>
+          <div class="copy-main">
+            <div class="project-label">${project.label}</div>
+            <div class="project-title">${project.title}</div>
+            <div class="project-caption">${project.caption}</div>
+            <div class="project-meta">${project.meta}</div>
+            <div class="project-links">
+              <a class="btn-link" href="${project.github}" target="_blank" rel="noreferrer">GitHub</a>
+              <a class="btn-link" href="${project.devto}" target="_blank" rel="noreferrer">Dev.to</a>
+            </div>
+          </div>
+        </div>
+      </section>
+    `).join('');
+
+    const canvas = document.getElementById('canvas');
+    const loader = document.getElementById('loader');
+    const scrollIndicator = document.getElementById('scrollIndicator');
+    const playBtn = document.getElementById('playBtn');
+    const muteBtn = document.getElementById('muteBtn');
+    const waveformBars = [...document.querySelectorAll('.bar')];
+
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.Fog(0x05070b, 8, 60);
+    const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 200);
+    camera.position.z = 5;
+
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+
+    const planes = [];
+    const zSpacing = 12;
+    let currentSection = 0;
+
+    function getPlaneSize(depth) {
+      const distance = Math.max(0.1, Math.abs(camera.position.z - depth));
+      const vFov = THREE.MathUtils.degToRad(camera.fov);
+      const height = 2 * Math.tan(vFov / 2) * distance;
+      const width = height * camera.aspect;
+      return { width: width * 1.02, height: height * 1.02 };
+    }
+
+    function buildPlane(texture, index) {
+      const depth = -index * zSpacing;
+      const size = getPlaneSize(depth);
+      const geometry = new THREE.PlaneGeometry(size.width, size.height);
+      const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true, opacity: 0 });
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.position.z = depth;
+      mesh.position.x = 0;
+      mesh.userData.index = index;
+      mesh.userData.targetOpacity = 0;
+      return mesh;
+    }
+
+    function createPlaneFromImage(src, index, onReady) {
+      const image = new Image();
+      image.decoding = 'async';
+      image.onload = () => {
+        const texture = new THREE.Texture(image);
+        texture.needsUpdate = true;
+        texture.colorSpace = THREE.SRGBColorSpace;
+        const plane = buildPlane(texture, index);
+        scene.add(plane);
+        planes[index] = plane;
+        onReady?.(plane);
+      };
+      image.onerror = () => {
+        const fallback = document.createElement('canvas');
+        fallback.width = 1600;
+        fallback.height = 900;
+        const ctx = fallback.getContext('2d');
+        const g = ctx.createLinearGradient(0, 0, 1600, 900);
+        g.addColorStop(0, '#101827'); g.addColorStop(1, '#05070b');
+        ctx.fillStyle = g; ctx.fillRect(0, 0, 1600, 900);
+        ctx.fillStyle = 'rgba(255,255,255,0.12)';
+        ctx.font = 'bold 80px system-ui';
+        ctx.textAlign = 'center';
+        ctx.fillText(projects[index].title, 800, 460);
+        const texture = new THREE.CanvasTexture(fallback);
+        const plane = buildPlane(texture, index);
+        scene.add(plane);
+        planes[index] = plane;
+        onReady?.(plane);
+      };
+      image.src = src;
+    }
+
+    function updatePlaneSizes() {
+      planes.forEach((plane, index) => {
+        if (!plane) return;
+        const depth = -index * zSpacing;
+        const size = getPlaneSize(depth);
+        plane.geometry.dispose();
+        plane.geometry = new THREE.PlaneGeometry(size.width, size.height);
+      });
+    }
+
+    function setActiveSection(index) {
+      currentSection = index;
+      document.querySelectorAll('.content').forEach((node, i) => node.classList.toggle('active', i === index));
+      if (isPlaying && !isMuted) crossfade(index);
+    }
+
+    function scrollProgress() {
+      const maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+      return Math.min(1, Math.max(0, window.scrollY / maxScroll));
+    }
+
+    function onScroll() {
+      const progress = scrollProgress();
+      const targetZ = 5 - progress * (projects.length - 1) * zSpacing;
+      camera.position.z += (targetZ - camera.position.z) * 0.1;
+      const nextSection = Math.round(progress * (projects.length - 1));
+      if (nextSection !== currentSection) setActiveSection(nextSection);
+      planes.forEach((plane, index) => {
+        if (!plane) return;
+        const distance = Math.abs(camera.position.z - plane.position.z);
+        plane.userData.targetOpacity = Math.max(0, 1 - distance / 9);
+      });
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      planes.forEach(plane => {
+        if (!plane) return;
+        plane.material.opacity += (plane.userData.targetOpacity - plane.material.opacity) * 0.08;
+      });
+      renderer.render(scene, camera);
+    }
+
+    let audioContext = null;
+    let audioElements = [];
+    let gainNodes = [];
+    let isPlaying = false;
+    let isMuted = false;
+    let waveTimer = null;
+
+    function initAudio() {
+      if (audioContext) return;
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      projects.forEach((project, index) => {
+        const audio = new Audio(project.audio);
+        audio.loop = true;
+        audio.preload = 'auto';
+        audio.crossOrigin = 'anonymous';
+        const source = audioContext.createMediaElementSource(audio);
+        const gain = audioContext.createGain();
+        gain.gain.value = 0;
+        source.connect(gain).connect(audioContext.destination);
+        audioElements[index] = audio;
+        gainNodes[index] = gain;
+      });
+    }
+
+    function updateWaveform(active) {
+      clearInterval(waveTimer);
+      if (!active || isMuted) {
+        waveformBars.forEach(bar => bar.style.height = '4px');
+        return;
+      }
+      waveTimer = setInterval(() => {
+        waveformBars.forEach(bar => {
+          bar.style.height = `${Math.random() * 18 + 4}px`;
+        });
+      }, 140);
+    }
+
+    async function playCurrent() {
+      initAudio();
+      if (audioContext.state === 'suspended') await audioContext.resume();
+      if (audioElements[currentSection]) {
+        audioElements[currentSection].play().catch(() => {});
+        gainNodes[currentSection].gain.cancelScheduledValues(audioContext.currentTime);
+        gainNodes[currentSection].gain.setValueAtTime(0, audioContext.currentTime);
+        gainNodes[currentSection].gain.linearRampToValueAtTime(isMuted ? 0 : 0.28, audioContext.currentTime + 0.8);
+      }
+      isPlaying = true;
+      playBtn.textContent = '⏸';
+      updateWaveform(true);
+    }
+
+    function pauseCurrent() {
+      if (!audioContext) return;
+      audioElements.forEach(audio => audio.pause());
+      gainNodes.forEach(gain => {
+        gain.gain.cancelScheduledValues(audioContext.currentTime);
+        gain.gain.setValueAtTime(0, audioContext.currentTime);
+      });
+      isPlaying = false;
+      playBtn.textContent = '▶';
+      updateWaveform(false);
+    }
+
+    function crossfade(nextIndex) {
+      if (!audioContext || nextIndex === currentSection) return;
+      const previous = currentSection;
+      const previousGain = gainNodes[previous];
+      const nextGain = gainNodes[nextIndex];
+      const nextAudio = audioElements[nextIndex];
+      if (!nextGain || !nextAudio) return;
+      nextAudio.play().catch(() => {});
+      nextGain.gain.cancelScheduledValues(audioContext.currentTime);
+      nextGain.gain.setValueAtTime(0, audioContext.currentTime);
+      nextGain.gain.linearRampToValueAtTime(isMuted ? 0 : 0.28, audioContext.currentTime + 0.9);
+      if (previousGain) {
+        previousGain.gain.cancelScheduledValues(audioContext.currentTime);
+        previousGain.gain.setValueAtTime(previousGain.gain.value, audioContext.currentTime);
+        previousGain.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.9);
+        setTimeout(() => audioElements[previous]?.pause(), 950);
+      }
+    }
+
+    function toggleMute() {
+      isMuted = !isMuted;
+      muteBtn.textContent = isMuted ? '🔇' : '🔊';
+      if (!audioContext) return;
+      const activeGain = gainNodes[currentSection];
+      if (activeGain) {
+        activeGain.gain.cancelScheduledValues(audioContext.currentTime);
+        activeGain.gain.setValueAtTime(activeGain.gain.value, audioContext.currentTime);
+        activeGain.gain.linearRampToValueAtTime(isMuted ? 0 : 0.28, audioContext.currentTime + 0.2);
+      }
+      updateWaveform(isPlaying && !isMuted);
+    }
+
+    playBtn.addEventListener('click', () => {
+      if (isPlaying) pauseCurrent(); else playCurrent();
+    });
+    muteBtn.addEventListener('click', toggleMute);
+
+    let firstGesture = false;
+    function triggerAutoplay() {
+      if (firstGesture) return;
+      firstGesture = true;
+      setTimeout(() => playCurrent(), 80);
+    }
+    ['scroll', 'click', 'keydown', 'touchstart'].forEach(evt => window.addEventListener(evt, triggerAutoplay, { once: true }));
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      updatePlaneSizes();
+    });
+
+    async function init() {
+      setActiveSection(0);
+      createPlaneFromImage(projects[0].file, 0, () => {
+        loader.classList.add('hide');
+        scrollIndicator.classList.add('show');
+        updatePlaneSizes();
+        animate();
+        for (let i = 1; i < projects.length; i++) {
+          setTimeout(() => createPlaneFromImage(projects[i].file, i), i * 250);
+        }
+      });
+    }
+
+    init();
+  </script>
+</body>
+</html>
